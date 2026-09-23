@@ -801,13 +801,18 @@
                 const choicesDiv = document.getElementById('ui-choices'); choicesDiv.innerHTML = '';
                 const hexColors = ['#06b6d4', '#a855f7', '#f97316']; 
 
-                q.c.forEach((choice, idx) => {
-                    const hex = hexColors[idx];
+                // สร้าง Array เก็บตำแหน่งดั้งเดิม [0, 1, 2] แล้วสุ่มสลับตำแหน่ง (Shuffle)
+                const shuffledIndices = [0, 1, 2].sort(() => 0.5 - Math.random());
+                
+                shuffledIndices.forEach((origIdx, uiIdx) => {
+                    const choice = q.c[origIdx];
+                    const hex = hexColors[uiIdx]; // สีและการเรียงลำดับ 1,2,3 บนจอคงเดิมซ้ายไปขวา
                     const btn = document.createElement('div'); 
                     btn.className = 'choice-card-v2 p-4 sm:p-6 flex flex-row sm:flex-col items-center gap-3 sm:gap-4 justify-start sm:justify-center w-full'; 
-                    btn.style.setProperty('--card-color', hex); btn.dataset.index = idx; 
+                    btn.style.setProperty('--card-color', hex); 
+                    btn.dataset.index = origIdx; // *** สำคัญ: ซ่อนตำแหน่งที่แท้จริงไว้ตรวจคำตอบ ***
                     
-                    btn.innerHTML = `<div class="circle-num w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-xl">${idx + 1}</div><div class="font-semibold text-xs sm:text-base md:text-lg text-left sm:text-center leading-tight flex-1 px-1">${choice}</div>`;
+                    btn.innerHTML = `<div class="circle-num w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-xl">${uiIdx + 1}</div><div class="font-semibold text-xs sm:text-base md:text-lg text-left sm:text-center leading-tight flex-1 px-1">${choice}</div>`;
                     choicesDiv.appendChild(btn);
                 });
                 
