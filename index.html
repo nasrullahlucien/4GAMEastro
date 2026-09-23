@@ -652,7 +652,8 @@
                 AudioSys.playGrab(); 
                 let ripple = document.createElement('span'); ripple.className = 'jump-ripple'; cardEl.appendChild(ripple); setTimeout(() => ripple.remove(), 600);
                 cardEl.classList.add('grabbing'); 
-                GameSys.checkAnswer(zone, cardEl); 
+                // เปลี่ยนจากส่งค่า zone เป็นดึงค่าตำแหน่งแท้จริงที่ซ่อนไว้ในปุ่ม
+                GameSys.checkAnswer(parseInt(cardEl.dataset.index), cardEl); 
             },
             hideIndicator() { 
                 if(this.indicatorEl) this.indicatorEl.style.display = 'none'; 
