@@ -652,7 +652,6 @@
                 AudioSys.playGrab(); 
                 let ripple = document.createElement('span'); ripple.className = 'jump-ripple'; cardEl.appendChild(ripple); setTimeout(() => ripple.remove(), 600);
                 cardEl.classList.add('grabbing'); 
-                // เปลี่ยนจากส่งค่า zone เป็นดึงค่าตำแหน่งแท้จริงที่ซ่อนไว้ในปุ่ม
                 GameSys.checkAnswer(parseInt(cardEl.dataset.index), cardEl); 
             },
             hideIndicator() { 
@@ -674,7 +673,6 @@
             }
         };
 
-        // Adding 'level' attribute to categorize difficulty (1: Easy, 2: Medium, 3: Hard)
         const QuestionBank = [
             // Level 1: Basic Exploration (12 Qs)
             { id: "A01", level: 1, q: "การศึกษาโครงสร้างภายในของโลกทางอ้อมนักวิทยาศาสตร์อาศัยข้อมูลจากสิ่งใดเป็นหลัก?", c: ["คลื่นไหวสะเทือน", "การระเบิดของภูเขาไฟ", "อุกกาบาตที่ตกมาบนโลก"], a: 0, cat: "โครงสร้างโลก", desc: "ความเร็วของคลื่นไหวสะเทือน (P-wave, S-wave) ที่เปลี่ยนไปตามตัวกลาง ช่วยบอกสถานะความหนาแน่นภายในโลกได้" },
@@ -722,12 +720,12 @@
             student: { studentId: "", firstName: "", lastName: "" }, attemptId: "",
             currentStage: 1, score: 0, energy: 5, timer: 30, qIndex: 0, 
             activeQuestions: [], startTime: 0, stats: { correct: 0, wrong: 0, timeUsed: 0 },
-            questionResults: [], isAnswering: false, timerInterval: null
+            questionResults: [], isAnswering: false, timerInterval: null,
+            combo: 0 // เพิ่มตัวแปรเก็บสถานะคอมโบตรงนี้
         };
 
         const GameSys = {
             startCountdown(stageNum) {
-                // Set the current stage
                 GameState.currentStage = stageNum || 1;
 
                 if(AudioSys.ctx && AudioSys.ctx.state === 'suspended') AudioSys.ctx.resume();
@@ -762,13 +760,13 @@
                 GameState.attemptId = `ASTRO-S${GameState.currentStage}-` + Date.now() + "-" + Math.floor(Math.random()*1000);
                 GameState.questionResults = [];
                 
-                // Filter questions by level, then shuffle and pick 5
                 const pool = QuestionBank.filter(q => q.level === GameState.currentStage);
                 const shuffled = [...pool].sort(() => 0.5 - Math.random());
                 GameState.activeQuestions = shuffled.slice(0, 5); 
                 
-                // Reset stats for the stage
+                // รีเซ็ตค่าสถิติต่างๆ และรีเซ็ตคอมโบให้กลับเป็น 0
                 GameState.score = 0; GameState.energy = 5; GameState.qIndex = 0; GameState.stats = { correct: 0, wrong: 0, timeUsed: 0 }; GameState.startTime = Date.now();
+                GameState.combo = 0;
                 
                 this.updateUI(); this.loadQuestion();
             },
@@ -782,7 +780,7 @@
             updateUI() {
                 document.getElementById('ui-stage-indicator').innerText = `STAGE ${GameState.currentStage}`;
                 document.getElementById('ui-score').innerText = GameState.score.toString();
-                let heartsHtml = ''; for(let i=0; i<5; i++) heartsHtml += i < GameState.energy ? '<i class="fa-solid fa-heart drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]"></i>' : '<i class="fa-regular fa-heart text-slate-700"></i>';
+                let heartsHtml = ''; for(let i=0; i<5; i++) heartsHtml += i < GameState.energy ? '<i class="fa-solid fa-heart drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]"></i>' : '<i class="regular fa-heart text-slate-700"></i>';
                 document.getElementById('ui-energy').innerHTML = heartsHtml; document.getElementById('ui-qnum').innerText = GameState.qIndex + 1;
             },
             loadQuestion() {
@@ -790,7 +788,6 @@
                 GameState.isAnswering = false; GameState.timer = 30; this.updateTimerUI();
                 const q = GameState.activeQuestions[GameState.qIndex];
                 
-                // Display Stage Name instead of Category if preferred, or keep category
                 const stageNames = ["BASIC EXPLORATION", "ADVANCED TECTONICS", "DISASTER SURVIVAL"];
                 document.getElementById('ui-category').innerText = `STAGE ${GameState.currentStage} : ${stageNames[GameState.currentStage-1]}`; 
                 document.getElementById('ui-question').innerText = q.q;
@@ -802,16 +799,15 @@
                 const choicesDiv = document.getElementById('ui-choices'); choicesDiv.innerHTML = '';
                 const hexColors = ['#06b6d4', '#a855f7', '#f97316']; 
 
-                // สร้าง Array เก็บตำแหน่งดั้งเดิม [0, 1, 2] แล้วสุ่มสลับตำแหน่ง (Shuffle)
                 const shuffledIndices = [0, 1, 2].sort(() => 0.5 - Math.random());
                 
                 shuffledIndices.forEach((origIdx, uiIdx) => {
                     const choice = q.c[origIdx];
-                    const hex = hexColors[uiIdx]; // สีและการเรียงลำดับ 1,2,3 บนจอคงเดิมซ้ายไปขวา
+                    const hex = hexColors[uiIdx];
                     const btn = document.createElement('div'); 
                     btn.className = 'choice-card-v2 p-4 sm:p-6 flex flex-row sm:flex-col items-center gap-3 sm:gap-4 justify-start sm:justify-center w-full'; 
                     btn.style.setProperty('--card-color', hex); 
-                    btn.dataset.index = origIdx; // *** สำคัญ: ซ่อนตำแหน่งที่แท้จริงไว้ตรวจคำตอบ ***
+                    btn.dataset.index = origIdx; 
                     
                     btn.innerHTML = `<div class="circle-num w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-xl">${uiIdx + 1}</div><div class="font-semibold text-xs sm:text-base md:text-lg text-left sm:text-center leading-tight flex-1 px-1">${choice}</div>`;
                     choicesDiv.appendChild(btn);
@@ -837,23 +833,43 @@
                 const dz = document.getElementById('question-container'); const overlay = document.getElementById('question-result-overlay'); const desc = document.getElementById('question-result-desc');
                 overlay.classList.remove('opacity-0'); overlay.classList.add('opacity-100'); desc.innerText = q.desc; desc.classList.remove('hidden');
                 let pointsEarned = 0;
+                
                 if (isCorrect) {
-                    AudioSys.playCorrect(); dz.classList.add('success'); pointsEarned = 10; let bonusText = ""; if (GameState.timer >= 20) { pointsEarned += 5; bonusText = " (+5 SPEED)"; }
+                    AudioSys.playCorrect(); dz.classList.add('success'); 
+                    pointsEarned = 10; 
+                    let bonusText = ""; 
+                    if (GameState.timer >= 20) { pointsEarned += 5; bonusText += " (+5 SPEED)"; }
+                    
+                    // ระบบคำนวณคอมโบต่อเนื่อง
+                    GameState.combo++; 
+                    let comboPoints = 0;
+                    if (GameState.combo >= 2 && GameState.combo <= 4) {
+                        comboPoints = 5;
+                        bonusText += ` (+${comboPoints} COMBO x${GameState.combo})`;
+                    } else if (GameState.combo === 5) {
+                        comboPoints = 10;
+                        bonusText += ` (+${comboPoints} MAX COMBO!)`;
+                    }
+                    pointsEarned += comboPoints;
+
                     document.getElementById('question-result-icon').innerHTML = '<i class="fa-solid fa-circle-check text-green-400"></i>';
                     document.getElementById('question-result-text').className = "text-2xl sm:text-4xl font-bold font-sci tracking-widest text-green-400"; document.getElementById('question-result-text').innerText = "CORRECT";
                     document.getElementById('question-result-pts').className = "text-sm sm:text-xl font-bold font-sci tracking-widest text-amber-400 mt-2"; document.getElementById('question-result-pts').innerText = `+${pointsEarned} POINTS${bonusText}`;
                     GameState.score += pointsEarned; GameState.stats.correct++;
                 } else {
+                    GameState.combo = 0; // ตอบผิดรีเซ็ตคอมโบเป็น 0 ทันที
                     AudioSys.playError(); dz.classList.add('error'); pointsEarned = -5;
                     document.getElementById('question-result-icon').innerHTML = '<i class="fa-solid fa-circle-xmark text-red-500"></i>';
                     document.getElementById('question-result-text').className = "text-2xl sm:text-4xl font-bold font-sci tracking-widest text-red-500"; document.getElementById('question-result-text').innerText = "INCORRECT";
                     document.getElementById('question-result-pts').className = "text-sm sm:text-xl font-bold font-sci tracking-widest text-red-400 mt-2"; document.getElementById('question-result-pts').innerText = "-5 POINTS / -1 ENERGY";
                     GameState.score = Math.max(0, GameState.score - 5); GameState.energy--; GameState.stats.wrong++;
                 }
+                
                 GameState.questionResults.push({ questionId: q.id, category: q.cat, question: q.q, studentAnswer: q.c[selectedIndex], correctAnswer: q.c[q.a], result: isCorrect ? "correct" : "wrong", score: pointsEarned, timeUsed: timeTaken, questionOrder: GameState.qIndex + 1 });
                 this.updateUI(); setTimeout(() => { this.nextQuestion(); }, 4000);
             },
             handleTimeOut() {
+                GameState.combo = 0; // ปล่อยเวลาหมดรีเซ็ตคอมโบเป็น 0 ทันที
                 GameState.isAnswering = true; this.clearTimer(); AudioSys.playError(); const q = GameState.activeQuestions[GameState.qIndex]; const timeTaken = 30; GameState.stats.timeUsed += timeTaken;
                 const dz = document.getElementById('question-container'); const overlay = document.getElementById('question-result-overlay'); const desc = document.getElementById('question-result-desc');
                 dz.classList.add('error'); overlay.classList.remove('opacity-0'); overlay.classList.add('opacity-100'); desc.innerText = q.desc; desc.classList.remove('hidden');
@@ -878,7 +894,6 @@
             endGame() {
                 this.clearTimer(); const totalTimeSec = GameState.stats.timeUsed; const min = Math.floor(totalTimeSec / 60).toString().padStart(2, '0'); const sec = (totalTimeSec % 60).toString().padStart(2, '0'); const completed = GameState.energy > 0;
                 
-                // แก้ไขให้บันทึกเฉพาะค่าที่มากกว่าเดิม (True High Score)
                 const hsKey = `astro_hs_${GameState.student.studentId}`;
                 let currentHs = parseInt(localStorage.getItem(hsKey) || 0);
                 
@@ -919,7 +934,6 @@
                     else { rank = "SURVIVOR"; icon = '<i class="fa-solid fa-shield-halved"></i>'; color = "text-green-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]"; }
                 }
 
-                // Setup Action Button
                 if (completed && GameState.currentStage < 3) {
                     btnPrimary.innerHTML = '<i class="fa-solid fa-forward mr-2"></i> NEXT STAGE';
                     btnPrimary.onclick = () => GameSys.startCountdown(GameState.currentStage + 1);
