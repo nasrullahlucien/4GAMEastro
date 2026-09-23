@@ -872,14 +872,13 @@
             endGame() {
                 this.clearTimer(); const totalTimeSec = GameState.stats.timeUsed; const min = Math.floor(totalTimeSec / 60).toString().padStart(2, '0'); const sec = (totalTimeSec % 60).toString().padStart(2, '0'); const completed = GameState.energy > 0;
                 
-                // Fetch Global Highscore
+                // แก้ไขให้บันทึกเฉพาะค่าที่มากกว่าเดิม (True High Score)
                 const hsKey = `astro_hs_${GameState.student.studentId}`;
                 let currentHs = parseInt(localStorage.getItem(hsKey) || 0);
-                // We add the stage score to a global total or track by stage. Let's track global.
-                if(GameState.score > 0) {
-                    let totalScore = currentHs + GameState.score;
-                    localStorage.setItem(hsKey, totalScore); 
-                    document.getElementById('display-high-score').innerText = totalScore;
+                
+                if(GameState.score > currentHs) {
+                    localStorage.setItem(hsKey, GameState.score); 
+                    document.getElementById('display-high-score').innerText = GameState.score;
                 }
 
                 PoseTrackingSys.isActive = false;
